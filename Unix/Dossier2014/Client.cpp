@@ -1,0 +1,344 @@
+/****************************************************************************
+** Form implementation generated from reading ui file 'Client.ui'
+**
+** Created: mar. oct. 21 04:20:43 2014
+**      by: The User Interface Compiler ($Id: qt/main.cpp   3.3.4   edited Nov 24 2003 $)
+**
+** WARNING! All changes made in this file will be lost!
+****************************************************************************/
+
+#include "Client.h"
+
+#include <qvariant.h>
+#include <qlabel.h>
+#include <qlineedit.h>
+#include <qpushbutton.h>
+#include <qtextedit.h>
+#include <qcheckbox.h>
+#include <qlayout.h>
+#include <qtooltip.h>
+#include <qwhatsthis.h>
+
+#include <signal.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+
+#include "Fichier.ini"
+
+extern MESSAGE		M;
+extern Client* F1;
+
+extern int idMsg;
+
+/*
+ *  Constructs a Client as a child of 'parent', with the
+ *  name 'name' and widget flags set to 'f'.
+ *
+ *  The dialog will by default be modeless, unless you set 'modal' to
+ *  TRUE to construct a modal dialog.
+ */
+Client::Client( QWidget* parent, const char* name, bool modal, WFlags fl )
+    : QDialog( parent, name, modal, fl )
+{
+    if ( !name )
+	setName( "Client" );
+    setMinimumSize( QSize( 800, 450 ) );
+
+    textNomLogin = new QLabel( this, "textNomLogin" );
+    textNomLogin->setGeometry( QRect( 20, 60, 60, 20 ) );
+
+    lineNomLogin = new QLineEdit( this, "lineNomLogin" );
+    lineNomLogin->setGeometry( QRect( 80, 60, 120, 21 ) );
+
+    textNom = new QLabel( this, "textNom" );
+    textNom->setGeometry( QRect( 550, 130, 77, 20 ) );
+
+    lineNom = new QLineEdit( this, "lineNom" );
+    lineNom->setGeometry( QRect( 660, 130, 120, 21 ) );
+
+    lineGsm = new QLineEdit( this, "lineGsm" );
+    lineGsm->setGeometry( QRect( 660, 160, 120, 21 ) );
+
+    textRenseignement = new QLabel( this, "textRenseignement" );
+    textRenseignement->setGeometry( QRect( 550, 100, 125, 20 ) );
+
+    ButtonLogin = new QPushButton( this, "ButtonLogin" );
+    ButtonLogin->setGeometry( QRect( 550, 60, 100, 29 ) );
+    ButtonLogin->setAutoDefault( FALSE );
+
+    ButtonRechercher = new QPushButton( this, "ButtonRechercher" );
+    ButtonRechercher->setGeometry( QRect( 550, 190, 100, 29 ) );
+    ButtonRechercher->setAutoDefault( FALSE );
+
+    ButtonTerminer = new QPushButton( this, "ButtonTerminer" );
+    ButtonTerminer->setGeometry( QRect( 680, 60, 100, 29 ) );
+    ButtonTerminer->setAutoDefault( FALSE );
+
+    ButtonModifier = new QPushButton( this, "ButtonModifier" );
+    ButtonModifier->setGeometry( QRect( 680, 190, 100, 29 ) );
+    ButtonModifier->setAutoDefault( FALSE );
+
+    textConnecte = new QLabel( this, "textConnecte" );
+    textConnecte->setGeometry( QRect( 550, 270, 260, 20 ) );
+    //textConnecte->setGeometry( QRect( 550, 270, 160, 20 ) );
+
+    ButtonEnvoyer = new QPushButton( this, "ButtonEnvoyer" );
+    ButtonEnvoyer->setGeometry( QRect( 430, 420, 100, 29 ) );
+    ButtonEnvoyer->setAutoDefault( FALSE );
+
+    lineMessage = new QLineEdit( this, "lineMessage" );
+    lineMessage->setGeometry( QRect( 20, 390, 510, 21 ) );
+
+    textGsm = new QLabel( this, "textGsm" );
+    textGsm->setGeometry( QRect( 550, 160, 77, 20 ) );
+
+    linePublicite = new QLineEdit( this, "linePublicite" );
+    linePublicite->setGeometry( QRect( 20, 20, 760, 21 ) );
+    linePublicite->setReadOnly( TRUE );
+
+    textMessageRecu = new QTextEdit( this, "textMessageRecu" );
+    //textMessageRecu->setEnabled( FALSE );
+    textMessageRecu->setReadOnly( TRUE );
+    textMessageRecu->setGeometry( QRect( 20, 100, 510, 270 ) );
+
+    linePersonne[0] = new QLineEdit( this, "linePersonne0" );
+    linePersonne[0]->setGeometry( QRect( 550, 305, 120, 21 ) );
+    linePersonne[0]->setReadOnly( TRUE );
+    linePersonne[1] = new QLineEdit( this, "linePersonne1" );
+    linePersonne[1]->setGeometry( QRect( 550, 335, 120, 21 ) );
+    linePersonne[1]->setReadOnly( TRUE );
+    linePersonne[2] = new QLineEdit( this, "linePersonne2" );
+    linePersonne[2]->setGeometry( QRect( 550, 365, 120, 21 ) );
+    linePersonne[2]->setReadOnly( TRUE );
+    linePersonne[3] = new QLineEdit( this, "linePersonne3" );
+    linePersonne[3]->setGeometry( QRect( 550, 395, 120, 21 ) );
+    linePersonne[3]->setReadOnly( TRUE );
+    linePersonne[4] = new QLineEdit( this, "linePersonne4" );
+    linePersonne[4]->setGeometry( QRect( 550, 425, 120, 21 ) );
+    linePersonne[4]->setReadOnly( TRUE );
+
+    checkBox[0] = new QCheckBox( this, "checkBox0" );
+    checkBox[0]->setGeometry( QRect( 685, 305, 90, 20 ) );
+    checkBox[1] = new QCheckBox( this, "checkBox1" );
+    checkBox[1]->setGeometry( QRect( 685, 335, 90, 20 ) );
+    checkBox[2] = new QCheckBox( this, "checkBox2" );
+    checkBox[2]->setGeometry( QRect( 685, 365, 90, 20 ) );
+    checkBox[3] = new QCheckBox( this, "checkBox3" );
+    checkBox[3]->setGeometry( QRect( 685, 395, 90, 20 ) );
+    checkBox[4] = new QCheckBox( this, "checkBox4" );
+    checkBox[4]->setGeometry( QRect( 685, 425, 90, 20 ) );
+    languageChange();
+    resize( QSize(800, 480).expandedTo(minimumSizeHint()) );
+    clearWState( WState_Polished );
+
+    // signals and slots connections
+    connect( ButtonLogin, SIGNAL( clicked() ), this, SLOT( Login() ) );
+    connect( ButtonTerminer, SIGNAL( clicked() ), this, SLOT( Terminer() ) );
+    connect( ButtonRechercher, SIGNAL( clicked() ), this, SLOT( Rechercher() ) );
+    connect( ButtonModifier, SIGNAL( clicked() ), this, SLOT( Modifier() ) );
+    connect( ButtonEnvoyer, SIGNAL( clicked() ), this, SLOT( Envoyer() ) );
+    connect( checkBox[0], SIGNAL( clicked() ), this, SLOT( Selection0() ) );
+    connect( checkBox[1], SIGNAL( clicked() ), this, SLOT( Selection1() ) );
+    connect( checkBox[2], SIGNAL( clicked() ), this, SLOT( Selection2() ) );
+    connect( checkBox[3], SIGNAL( clicked() ), this, SLOT( Selection3() ) );
+    connect( checkBox[4], SIGNAL( clicked() ), this, SLOT( Selection4() ) );
+}
+
+/*
+ *  Destroys the object and frees any allocated resources
+ */
+Client::~Client()
+{
+    // no need to delete child widgets, Qt does it all for us
+}
+
+/*
+ *  Sets the strings of the subwidgets using the current
+ *  language.
+ */
+void Client::languageChange()
+{
+    setCaption( tr( "Dossier Unix 2014" ) );
+    textNomLogin->setText( tr( "Nom :" ) );
+    textNom->setText( tr( "Nom :" ) );
+    textRenseignement->setText( tr( "<b>Renseignements :</b>" ) );
+    ButtonLogin->setText( tr( "Login" ) );
+    ButtonRechercher->setText( tr( "Rechercher" ) );
+    ButtonTerminer->setText( tr( "Terminer" ) );
+    ButtonModifier->setText( tr( "---" ) );
+    textConnecte->setText( tr( "<b>Personnes connectees</b>" ) );
+    ButtonEnvoyer->setText( tr( "Envoyer" ) );
+    textGsm->setText( tr( "Gsm :" ) );
+    checkBox[0]->setText( tr( "Refuse" ) );
+    checkBox[1]->setText( tr( "Refuse" ) );
+    checkBox[2]->setText( tr( "Refuse" ) );
+    checkBox[3]->setText( tr( "Refuse" ) );
+    checkBox[4]->setText( tr( "Refuse" ) );
+}
+
+void Client::Login()
+{
+
+    M.Requete = NEWWINDOW;
+    M.Type = 1L;
+    M.idPid = getpid();
+
+    M.Donnee[0] = '\0';
+    strcat(M.Donnee, lineNomLogin->text());
+
+    if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)
+    {
+        perror("Erreur de login");
+        exit(0);
+    }
+    lineNomLogin->setReadOnly( TRUE );
+
+}
+
+void Client::Terminer()
+{
+    int i;
+
+    M.Requete = TERMINER;
+    M.Type = 1L;
+    M.idPid = getpid();
+
+    M.Donnee[0] = '\0';
+
+    if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)
+    {
+        perror("Erreur de login");
+        exit(0);
+    }
+
+    for(i = 0; i < 5; i++)
+    {
+        F1->setPersonne(i, "");
+        checkBox[i]->setChecked(false);
+    }
+
+    lineNomLogin->setReadOnly( FALSE );
+    F1->textMessageRecu->clear();
+}
+
+void Client::Rechercher()
+{
+    char	B[255];
+    strcpy(B,ButtonRechercher->text());
+    if (!strcmp(B,"Rechercher"))
+       { ButtonModifier->setText( tr( "Modifier" ) );
+         ButtonRechercher->setText( tr( "Annuler") );
+         return;
+       }
+    ButtonModifier->setText( tr( "---" ) );
+    ButtonRechercher->setText( tr( "Rechercher") );
+    return;
+}
+
+void Client::Modifier()
+{
+    ButtonModifier->setText( tr( "---" ) );
+    ButtonRechercher->setText( tr( "Rechercher" ) );
+}
+
+void Client::Envoyer()
+{
+
+    if ((idMsg = msgget(KEY, 0)) == -1)
+    {
+        perror("Erreur msgget Client");
+        exit(0);
+    }
+
+    M.Donnee[0] = '\0';
+    strcat(M.Donnee,lineMessage->text());
+    strcat(M.Donnee,"\n");
+
+    M.Requete = ENVOYER;
+    M.Type = 1L;
+    M.idPid = getpid();
+
+    if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)
+    {
+        perror("Erreur msgsnd Client");
+        exit(0);
+    }
+    F1->lineMessage->clear();
+}
+
+void Client::Selection0()
+{
+    Selection(0);
+}
+
+void Client::Selection1()
+{
+
+    Selection(1);
+}
+
+void Client::Selection2()
+{
+    Selection(2);
+}
+
+void Client::Selection3()
+{
+    Selection(3);
+}
+
+void Client::Selection4()
+{
+    Selection(4);
+}
+
+void Client::Selection(int i)
+{
+    if (checkBox[i]->isChecked()) 
+       { checkBox[i]->setText( tr( "Accepte" ) );
+         M.Type = 1L;
+         M.idPid = getpid();
+         M.Requete = ACCEPTER;
+         strcpy(M.Donnee,linePersonne[i]->text());
+         msgsnd(idMsg,&M,sizeof(long)+9+strlen(M.Donnee),0);
+       }
+    else
+        {
+            checkBox[i]->setText( tr( "Refuse" ) );
+            M.Type = 1L;
+            M.idPid = getpid();
+            M.Requete = REFUSER;
+            strcpy(M.Donnee,linePersonne[i]->text());
+            msgsnd(idMsg,&M,sizeof(long)+9+strlen(M.Donnee),0);
+        }
+
+}
+
+void Client::setPersonne(int i,const char *T)
+{
+    linePersonne[i]->setText(T);
+}
+
+const char* Client::getPersonne(int i) const 
+{
+    return linePersonne[i]->text();
+}
+
+void Client::setMessage(const char *T)
+{
+    QString	TInter = textMessageRecu->text();
+    TInter = TInter.append(T);
+    textMessageRecu->setText(TInter);
+}
+
+void Client::setPublicite(const char *T)
+{
+    linePublicite->setText(T);
+}
+
+void Client::setCheckbox(int i,const bool b)
+{
+    checkBox[i]->setChecked(b);
+}
