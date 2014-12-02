@@ -65,7 +65,7 @@ if ((idMsg = msgget(KEY,IPC_CREAT|IPC_EXCL|0600)) == -1)
    }
 
 /*****************************CREATION MEMOIRE PARTAGEE*******************/
-if((memoire = shmget(MEMORY, 256, IPC_CREAT|IPC_EXCL|0600)) == -1) //creation d'une nouvelle memoire si elle existe pas
+if((memoire = shmget(MEMORY, sizeof(MEMOIRE), IPC_CREAT|IPC_EXCL|0600)) == -1) //creation d'une nouvelle memoire si elle existe pas
 {
   if ((memoire = shmget(MEMORY,0, NULL)) == -1) //si elle existe on recupere ses infos ici
   {
@@ -81,10 +81,12 @@ if((Tab = (MEMOIRE*)shmat(memoire, NULL, 0)) == (MEMOIRE*) -1)//On se raccroche 
   exit(1);
 }
 
+/*****************************SEMAPHORES********************************************************/
 
 while(1)
 {
 rc = msgrcv(idMsg,&M,sizeof(M) - sizeof(long),1L,0);//attend la réception d'un message
+Trace("Message reçu: %s %d", M.Donnee, M.Requete, )
 switch(M.Requete)
    { 
 
