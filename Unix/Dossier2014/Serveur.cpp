@@ -11,14 +11,18 @@
 #include <fcntl.h>
 #include <sys/varargs.h>
 #include <sys/types.h>
+#include <sys/sem.h>
 
 #include "Fichier.ini"
 
 #define MEMORY 1498
+#define SEMALEC 2314
+#define SEMAEC 2313
 
 int idMsg;
-int idShm;
+//int idShm;
 int memoire;
+int SemLec, SemEc;
 MEMOIRE *Tab;
 
 void AfficheTab();
@@ -82,11 +86,24 @@ if((Tab = (MEMOIRE*)shmat(memoire, NULL, 0)) == (MEMOIRE*) -1)//On se raccroche 
 }
 
 /*****************************SEMAPHORES********************************************************/
+if((SemLec = semget(SEMALEC, 1, IPC_CREAT|IPC_EXCL|0600)) == -1)
+{
+  Trace("Erreur creation semaphore");
+  exit(1);
+}
+
+if((SemEc = semget(SEMAEC, 1, IPC_CREAT|IPC_EXCL|0600)) == -1)
+{
+  Trace("Erreur creation semaphore");
+  exit(1);
+}
+
 
 while(1)
 {
 rc = msgrcv(idMsg,&M,sizeof(M) - sizeof(long),1L,0);//attend la réception d'un message
-Trace("Message reçu: %s %d", M.Donnee, M.Requete, )
+Trace("Message reçu: %s %d type : %d\n", M.Donnee, M.Requete, M.Type);
+
 switch(M.Requete)
    { 
 
@@ -146,7 +163,6 @@ switch(M.Requete)
             }
 
           Trace("Client %d login", M.idPid);
-          AfficheTab();
           
 
         break;
@@ -164,7 +180,6 @@ switch(M.Requete)
               j++;
             }
             Trace("Client %d deconnecté", M.idPid);
-            AfficheTab();
             
         break;
 
@@ -172,7 +187,7 @@ switch(M.Requete)
             
             for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++); //recherche de l'utilisateur qui se delogs
 
-            strcpy(M.Donnee, Tab->Utilisateur[i].NomUtilisateur);
+            strcpy(M.Donnee, Tab->Utilisateur[i].NomUtilisateur);//On prepare un message pour les autres clients
             strcpy(Tab->Utilisateur[i].NomUtilisateur, "");//remplace son nom par \0
 
             for(j = 0; j < 6; j++) // on remet à 0 le champs des contact accepté pour l'utilisateur qui se delog
@@ -201,7 +216,6 @@ switch(M.Requete)
 
               }
             }
-            AfficheTab();
             
         break;
 
@@ -243,19 +257,28 @@ switch(M.Requete)
      case ACCEPTER:
           
           for(i = 0; i < 5 && strcmp(M.Donnee, Tab->Utilisateur[i].NomUtilisateur); i++);//chercher le nom à accepter
-          k = Tab->Utilisateur[i].Pid;
+          k = Tab->Utilisateur[i].Pid;//On enregistre le PID de l'utilisateur trouvé
           Trace("%s %d", Tab->Utilisateur[i].NomUtilisateur, k);
-          for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++);
+          for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++);//On cherche l'utilisateur qui a accepté
           Trace("%s %d", Tab->Utilisateur[i].NomUtilisateur, k);
-          for (j = 0; i < 5 && Tab->Utilisateur[i].Autre[j] != 0 ;j++);
+          for (j = 0; i < 5 && Tab->Utilisateur[i].Autre[j] != 0 ;j++);//On parcour le tableau des utilisateurs acceptés pour trouver un emplacement libre
           Tab->Utilisateur[i].Autre[j] = k;
           
         break;
 
      case REFUSER:
-        
+          for(i = 0; i < 5 && strcmp(M.Donnee, Tab->Utilisateur[i].NomUtilisateur); i++);//chercher le nom à refuser
+          k = Tab->Utilisateur[i].Pid;//On enregistre l'ID à refuser
+
+          for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++);// On recherche l'utilisateur qui a refusé
+
+          for (j = 0; i < 5 && Tab->Utilisateur[i].Autre[j] != k ;j++);// On parcour son tab des utilisateurs acceptés pour trouver les vides.
+          Tab->Utilisateur[i].Autre[j] = 0;
         break;
       }
+
+      AfficheTab();
+      Trace("\n\n\n");
    }
 }
 
@@ -276,7 +299,7 @@ return ;
 void hcoupeserv (int NumSig)
 {
   msgctl(idMsg,IPC_RMID, NULL);
-  shmdt(Tab);    // Detachement de la memoire partagee
+  shmctl(memoire, IPC_RMID, 0);
   exit(0);
 }
 
