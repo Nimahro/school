@@ -19,9 +19,8 @@
 int idMsg;
 int idShm;
 int memoire;
-char *memPart;
+MEMOIRE *Tab;
 
-TABWINDOW	*Tab; 
 void AfficheTab();
 void hcoupeserv (int NumSig);
 void Trace(char *pszTrace, ... );
@@ -36,8 +35,6 @@ char *mempub;
 char  B[80];
 char transfer[255];
 int i,j,k;
-
-Tab = (TABWINDOW*) malloc(sizeof(TABWINDOW)*5);
 
 /*******************Redirige l'entrée d'erreur sur un fichier trace************************/
 if((fichlog = open("traceServ1.log",O_CREAT|O_TRUNC|O_WRONLY, 0777)) == -1 )
@@ -67,34 +64,23 @@ if ((idMsg = msgget(KEY,IPC_CREAT|IPC_EXCL|0600)) == -1)
       }
    }
 
-if((memoire = shmget(MEMORY, 256, IPC_CREAT|IPC_EXCL|0600)) == -1)
+/*****************************CREATION MEMOIRE PARTAGEE*******************/
+if((memoire = shmget(MEMORY, 256, IPC_CREAT|IPC_EXCL|0600)) == -1) //creation d'une nouvelle memoire si elle existe pas
 {
-  if ((memoire = shmget(MEMORY,0, NULL)) == -1)
+  if ((memoire = shmget(MEMORY,0, NULL)) == -1) //si elle existe on recupere ses infos ici
   {
-    Trace("erreur de creation de memoire");
+    Trace("erreur de creation de memoire"); // sinon on a un problème
     exit(1);
   }
 }
 
 Trace("Demarrage serveur memoire %d", getpid());
-if((memPart = (char*)shmat(memoire, NULL, 0)) == (char*) -1)
+if((Tab = (MEMOIRE*)shmat(memoire, NULL, 0)) == (MEMOIRE*) -1)//On se raccroche à la mémoire avec un pointeur de struct memoire
 {
   Trace("Erreur du rattachement à la mémoire");
   exit(1);
 }
 
-memcpy(memPart, Tab, sizeof(TABWINDOW)*5);
-
-Trace("test");
-fflush(stderr);
-
-memcpy(Tab, memPart, sizeof(TABWINDOW)*5);
-
-//mempub = memPart+(sizeof(TABWINDOW)*5);
-
-//memcpy(mempub, "cochonou", sizeof("cochonou"));
-
-Trace("%d, %s", Tab[1].Pid, Tab[1].NomUtilisateur);
 
 while(1)
 {
@@ -104,10 +90,10 @@ switch(M.Requete)
 
       case LOGIN:
 
-          memcpy(Tab, memPart, sizeof(TABWINDOW)*5);
-          for(i = 0; i < 5 && Tab[i].Pid != 0; i++);
+          
+          for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != 0; i++);
 
-          if(i == 5 && Tab[i].Pid != 0)
+          if(i == 5 && Tab->Utilisateur[i].Pid != 0)
           {
             Trace("plus de place pour %d", M.idPid);
             continue;
@@ -115,35 +101,35 @@ switch(M.Requete)
 
           Trace("%d", M.idPid);
 
-          Tab[i].Pid = M.idPid;
-          memcpy(memPart, Tab, sizeof(TABWINDOW)*5);
+          Tab->Utilisateur[i].Pid = M.idPid;
+          
           break;
 
       case NEWWINDOW:
 
-            memcpy(Tab, memPart, sizeof(TABWINDOW)*5);
-            for(i = 0; i < 5 && Tab[i].Pid != M.idPid; i++);// On cherchele PID de l'utilisateur qui veut se log 
+            
+            for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++);// On cherchele PID de l'utilisateur qui veut se log 
 
-            if(strlen(Tab[i].NomUtilisateur)!=0) //si l'utilisateur est deja log on arrête
+            if(strlen(Tab->Utilisateur[i].NomUtilisateur)!=0) //si l'utilisateur est deja log on arrête
               continue;
 
-            strcpy(Tab[i].NomUtilisateur, M.Donnee); //transfer du om de l'utilisateur log dans le tableau
+            strcpy(Tab->Utilisateur[i].NomUtilisateur, M.Donnee); //transfer du om de l'utilisateur log dans le tableau
 
             TransferConnecte.Type = M.idPid; // on prepare une structure qui enverra le nom du nouvel utilisateur aux autres fenêtre
             TransferConnecte.Requete = NEWWINDOW;
 
             for(i = 0; i < 5; i++)// on cherche tous les autres utilisateurs log pour leur envoyer le nouvel utilisateur
             {
-              if(Tab[i].Pid != M.idPid && Tab[i].Pid != 0 && strlen(Tab[i].NomUtilisateur) > 0)
+              if(Tab->Utilisateur[i].Pid != M.idPid && Tab->Utilisateur[i].Pid != 0 && strlen(Tab->Utilisateur[i].NomUtilisateur) > 0)
               {
-                M.Type = Tab[i].Pid;
+                M.Type = Tab->Utilisateur[i].Pid; 
                 if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)//envois du nouvel utilisateur aux progs logs
                 {
                   Trace("Erreur envois de nouvel utilisateur process %d", M.idPid);
                   exit(0);
                 }
 
-                strcpy(TransferConnecte.Donnee, Tab[i].NomUtilisateur);
+                strcpy(TransferConnecte.Donnee, Tab->Utilisateur[i].NomUtilisateur);
                 if (msgsnd (idMsg, &TransferConnecte, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)//dans la foulée on envoit au nouvel utilisateur les utilisateurs connectés
                 {
                   Trace("Erreur envois de nouvel utilisateur process %d", TransferConnecte.idPid);
@@ -151,7 +137,7 @@ switch(M.Requete)
                 }
               
 
-                kill (Tab[i].Pid, SIGUSR1);
+                kill (Tab->Utilisateur[i].Pid, SIGUSR1);
                 kill (TransferConnecte.Type, SIGUSR1);
               }
 
@@ -159,62 +145,62 @@ switch(M.Requete)
 
           Trace("Client %d login", M.idPid);
           AfficheTab();
-          memcpy(memPart, Tab, sizeof(TABWINDOW)*5);
+          
 
         break;
 
      case ENDWINDOW:
-            memcpy(Tab, memPart, sizeof(TABWINDOW)*5);
-            for(i = 0; i < 5 && Tab[i].Pid != M.idPid; i++); //recherche de l'utilisateur qui se delog
+            
+            for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++); //recherche de l'utilisateur qui se delog
               
-            strcpy(Tab[i].NomUtilisateur, "\0");//remplace son nom par /0
-            Tab[i].Pid = 0;
+            strcpy(Tab->Utilisateur[i].NomUtilisateur, "\0");//remplace son nom par \0
+            Tab->Utilisateur[i].Pid = 0;
             j = 0;
             while(j < 6)
             {
-              Tab[i].Autre[j] = 0;
+              Tab->Utilisateur[i].Autre[j] = 0;
               j++;
             }
             Trace("Client %d deconnecté", M.idPid);
             AfficheTab();
-            memcpy(memPart, Tab, sizeof(TABWINDOW)*5);
+            
         break;
 
      case TERMINER:
-            memcpy(Tab, memPart, sizeof(TABWINDOW)*5);
-            for(i = 0; i < 5 && Tab[i].Pid != M.idPid; i++); //recherche de l'utilisateur qui se delogs
+            
+            for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++); //recherche de l'utilisateur qui se delogs
 
-            strcpy(M.Donnee, Tab[i].NomUtilisateur);
-            strcpy(Tab[i].NomUtilisateur, "");//remplace son nom par /0
+            strcpy(M.Donnee, Tab->Utilisateur[i].NomUtilisateur);
+            strcpy(Tab->Utilisateur[i].NomUtilisateur, "");//remplace son nom par \0
 
             for(j = 0; j < 6; j++) // on remet à 0 le champs des contact accepté pour l'utilisateur qui se delog
             {
-              Tab[i].Autre[j] = 0;
+              Tab->Utilisateur[i].Autre[j] = 0;
             }
 
             for(i = 0; i < 5; i++)// On boucle pour enlever l'utilisateur de la table des autres
             {
 
-              if(Tab[i].Pid != M.idPid && Tab[i].Pid != 0 && strlen(Tab[i].NomUtilisateur) > 0)
+              if(Tab->Utilisateur[i].Pid != M.idPid && Tab->Utilisateur[i].Pid != 0 && strlen(Tab->Utilisateur[i].NomUtilisateur) > 0)
               {
-                M.Type = Tab[i].Pid;
+                M.Type = Tab->Utilisateur[i].Pid; 
                 if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)//envois du nouvel utilisateur aux progs logs
                 {
                   Trace("Erreur envois de nouvel utilisateur process %d", M.idPid);
                   exit(0);
                 }
               
-                kill (Tab[i].Pid, SIGUSR1);
+                kill (Tab->Utilisateur[i].Pid,  SIGUSR1);
 
-                for(j = 0; Tab[i].Autre[j] != M.idPid && j < 6; j++);
+                for(j = 0; Tab->Utilisateur[i].Autre[j] != M.idPid && j < 6; j++);
 
-                if(Tab[i].Autre[j] == M.idPid)
-                  Tab[i].Autre[j] = 0;
+                if(Tab->Utilisateur[i].Autre[j] == M.idPid)
+                  Tab->Utilisateur[i].Autre[j] = 0;
 
               }
             }
             AfficheTab();
-            memcpy(memPart, Tab, sizeof(TABWINDOW)*5);
+            
         break;
 
      case RECHERCHER:
@@ -227,19 +213,19 @@ switch(M.Requete)
         break;
 
      case ENVOYER:
-          memcpy(Tab, memPart, sizeof(TABWINDOW)*5);
-          for(i=0; i < 5 && M.idPid != Tab[i].Pid; i++); //on cherche dans la table le pid de celui qui a envoyé le message
+          
+          for(i=0; i < 5 && M.idPid != Tab->Utilisateur[i].Pid; i++); //on cherche dans la table le pid de celui qui a envoyé le message
 
-          sprintf(transfer,"(%s)%s", Tab[i].NomUtilisateur, M.Donnee);//on prepare le message
+          sprintf(transfer,"(%s)%s", Tab->Utilisateur[i].NomUtilisateur, M.Donnee);//on prepare le message
           strcpy(M.Donnee, transfer);
           M.Requete = ENVOYER;
 
           for(j=0; j < 6 ; j++)// on parcours la table des utilisateurs acceptés
           {
-            if(Tab[i].Autre[j] != 0)
+            if(Tab->Utilisateur[i].Autre[j] != 0)
             {  
-              M.idPid = Tab[i].Autre[j];
-              M.Type = Tab[i].Autre[j];
+              M.idPid = Tab->Utilisateur[i].Autre[j];
+              M.Type = Tab->Utilisateur[i].Autre[j];
               if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)
               {
                 Trace("Erreur envois de message process %d", M.idPid);
@@ -249,19 +235,19 @@ switch(M.Requete)
             }
             
           }
-          memcpy(memPart, Tab, sizeof(TABWINDOW)*5);
+          
         break;
 
      case ACCEPTER:
-          memcpy(Tab, memPart, sizeof(TABWINDOW)*5);
-          for(i = 0; i < 5 && strcmp(M.Donnee, Tab[i].NomUtilisateur); i++);//chercher le nom à accepter
-          k = Tab[i].Pid;
-          Trace("%s %d", Tab[i].NomUtilisateur, k);
-          for(i = 0; i < 5 && Tab[i].Pid != M.idPid; i++);
-          Trace("%s %d", Tab[i].NomUtilisateur, k);
-          for (j = 0; i < 5 && Tab[i].Autre[j] != 0 ;j++);
-          Tab[i].Autre[j] = k;
-          memcpy(memPart, Tab, sizeof(TABWINDOW)*5);
+          
+          for(i = 0; i < 5 && strcmp(M.Donnee, Tab->Utilisateur[i].NomUtilisateur); i++);//chercher le nom à accepter
+          k = Tab->Utilisateur[i].Pid;
+          Trace("%s %d", Tab->Utilisateur[i].NomUtilisateur, k);
+          for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++);
+          Trace("%s %d", Tab->Utilisateur[i].NomUtilisateur, k);
+          for (j = 0; i < 5 && Tab->Utilisateur[i].Autre[j] != 0 ;j++);
+          Tab->Utilisateur[i].Autre[j] = k;
+          
         break;
 
      case REFUSER:
@@ -277,9 +263,9 @@ void AfficheTab()
 int i = 0;
 while (i < 5) 
    { Trace("%5d --%-10s-- %5d %5d %5d %5d %5d\n",
-         Tab[i].Pid,Tab[i].NomUtilisateur,
-         Tab[i].Autre[0],Tab[i].Autre[1],Tab[i].Autre[2],
-         Tab[i].Autre[3],Tab[i].Autre[4]);
+         Tab->Utilisateur[i].Pid, Tab->Utilisateur[i].NomUtilisateur,
+         Tab->Utilisateur[i].Autre[0],Tab->Utilisateur[i].Autre[1],Tab->Utilisateur[i].Autre[2],
+         Tab->Utilisateur[i].Autre[3],Tab->Utilisateur[i].Autre[4]);
      i++;
    }
 return ;
@@ -288,8 +274,7 @@ return ;
 void hcoupeserv (int NumSig)
 {
   msgctl(idMsg,IPC_RMID, NULL);
-  shmdt(memPart);
-  shmctl(MEMORY,IPC_RMID,NULL);    // Suppression de la memoire partagee
+  shmdt(Tab);    // Detachement de la memoire partagee
   exit(0);
 }
 
