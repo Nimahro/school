@@ -98,6 +98,7 @@ if((SemEc = semget(SEMAEC, 1, IPC_CREAT|IPC_EXCL|0600)) == -1)
   exit(1);
 }
 
+/************************Ouverture du fichier *************************************************/
 
 while(1)
 {
