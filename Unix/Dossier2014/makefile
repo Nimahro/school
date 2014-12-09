@@ -1,7 +1,10 @@
 .SILENT:
 
-all: DossierFinal Serveur CreeFichierUtilisateur
+all: DossierFinal Serveur CreeFichierUtilisateur rechercher
 
+rechercher: rechercher.cpp
+			echo Creation rechercher
+			g++ -o rechercher rechercher.cpp
 
 Serveur:	Serveur.cpp
 			echo Creation serveur

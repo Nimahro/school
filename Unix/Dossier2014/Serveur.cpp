@@ -41,7 +41,7 @@ MESSAGE M, TransferConnecte;
 char *mempub;
 char  B[80];
 char transfer[255];
-int i,j,k;
+int i,j,k, idRech;
 sembuf operation;
 
 operation.sem_num = 0;
@@ -93,6 +93,20 @@ if((Tab = (MEMOIRE*)shmat(memoire, NULL, 0)) == (MEMOIRE*) -1)//On se raccroche 
   Trace("Erreur du rattachement à la mémoire");
   exit(1);
 }
+
+ if(Tab->pid1 == 0)
+  Tab->pid1 = getpid();
+ 
+ else
+ {
+    if(Tab->pid2 == 0)
+      Tab->pid2 = getpid();
+
+    else
+      exit(-5);
+ }
+
+ 
 
 /*****************************SEMAPHORES********************************************************/
 if((Sem = semget(SEMA, 1, IPC_CREAT|IPC_EXCL|0600)) == -1)
@@ -293,7 +307,18 @@ switch(M.Requete)
         break;
 
      case RECHERCHER:
-        Trace("je recherche un nom\n");
+
+        if ((idRech = fork()) == -1)
+        {
+          Trace("erreur fork rechercher");
+          exit(-5);
+        }
+
+        if(!idRech)
+        {
+          sprintf(transfer, "%d", M.idPid);
+          execl("./rechercher", M.Donnee, transfer, NULL);
+        }
         break;
 
      case ANNULER:
@@ -419,9 +444,20 @@ return ;
 
 void hcoupeserv (int NumSig)
 {
-  msgctl(idMsg,IPC_RMID, NULL);
-  shmctl(memoire, IPC_RMID, 0);
-  semctl(Sem, IPC_RMID, 0);
+  if(!Tab->pid2 || !Tab->pid1)
+  {
+    msgctl(idMsg,IPC_RMID, NULL);
+    shmctl(memoire, IPC_RMID, 0);
+    semctl(Sem, 0, IPC_RMID, 0);
+  }
+  if(Tab->pid1 == getpid())
+  {
+    Tab->pid1 = 0;
+    exit(0);
+  }
+
+  Tab->pid2 = 0;
+
   exit(0);
 }
 
