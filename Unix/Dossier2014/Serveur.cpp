@@ -421,6 +421,7 @@ void hcoupeserv (int NumSig)
 {
   msgctl(idMsg,IPC_RMID, NULL);
   shmctl(memoire, IPC_RMID, 0);
+  semctl(Sem, IPC_RMID, 0);
   exit(0);
 }
 

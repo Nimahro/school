@@ -227,6 +227,7 @@ void Client::Rechercher()
 {
     char B[255];
     strcpy(B,ButtonRechercher->text());
+    
     if (!strcmp(B,"Rechercher"))
        { 
         if(!strcmp(B, lineNomLogin->text())) //on vérifie si l'on recherche nos infos ou celles des autres.
