@@ -225,11 +225,12 @@ void Client::Terminer()
 
 void Client::Rechercher()
 {
-    char	B[255];
-    strcpy(B,ButtonRechercher->text());
+    M.Donnee[0] = '\0';
+    strcat(M.Donnee, ButtonRechercher->text());
     if (!strcmp(B,"Rechercher"))
        { ButtonModifier->setText( tr( "Modifier" ) );
          ButtonRechercher->setText( tr( "Annuler") );
+
          return;
        }
     ButtonModifier->setText( tr( "---" ) );
