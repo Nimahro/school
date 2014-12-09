@@ -313,11 +313,11 @@ switch(M.Requete)
           Trace("erreur fork rechercher");
           exit(-5);
         }
-
+        Trace("fork ok %d ", idRech);
         if(!idRech)
         {
           sprintf(transfer, "%d", M.idPid);
-          execl("./rechercher", M.Donnee, transfer, NULL);
+          execl("./rechercher", "rechercher", M.Donnee, transfer, NULL);
         }
         break;
 

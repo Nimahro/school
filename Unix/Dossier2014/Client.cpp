@@ -227,17 +227,15 @@ void Client::Rechercher()
 {
     char B[255];
     strcpy(B,ButtonRechercher->text());
-    
+    strcpy(M.Donnee, lineNom->text());
+
     if (!strcmp(B,"Rechercher"))
        { 
-        if(!strcmp(B, lineNomLogin->text())) //on vérifie si l'on recherche nos infos ou celles des autres.
+        if(!strcmp(M.Donnee, lineNomLogin->text())) //on vérifie si l'on recherche nos infos ou celles des autres.
         {
             ButtonModifier->setText( tr( "Modifier" ) );
             ButtonRechercher->setText( tr( "Annuler") );
         }
-
-        M.Donnee[0] = '\0';
-        strcat(M.Donnee, B);
 
         M.Requete = RECHERCHER;
 
