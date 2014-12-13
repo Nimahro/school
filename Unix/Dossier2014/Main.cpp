@@ -63,34 +63,34 @@ void HNouveauMessage(int Sig)
 {
     int i = 0;
 
-    if (msgrcv (idMsg, &M, sizeof(MESSAGE) - sizeof(long), getpid(), 0) == -1)
-            {
-                perror("Erreur handler nouveau message");
-                exit(0);
-            }
-
-    switch(M.Requete)
+    while(msgrcv (idMsg, &M, sizeof(MESSAGE) - sizeof(long), getpid(), IPC_NOWAIT) != -1)
     {
-        case ENVOYER:
-            F1->setMessage(M.Donnee);
-        break;
+        
+        printf("%s\n", M.Donnee);
+        fflush(stdout);
+        switch(M.Requete)
+        {
+            case ENVOYER:
+                F1->setMessage(M.Donnee);
+            break;
 
-        case NEWWINDOW:
-            for(i = 0; strlen(F1->getPersonne(i)) != 0 && i < 5; i++);
-                
-            if(strlen(F1->getPersonne(i)) == 0)
-                F1->setPersonne(i, M.Donnee);
-        break;
+            case NEWWINDOW:
+                for(i = 0; strlen(F1->getPersonne(i)) != 0 && i < 5; i++);
+                    
+                if(strlen(F1->getPersonne(i)) == 0)
+                    F1->setPersonne(i, M.Donnee);
+            break;
 
-        case TERMINER:
-            for(i = 0; strcmp(F1->getPersonne(i), M.Donnee) != 0 && i < 5; i++);
+            case TERMINER:
+                for(i = 0; strcmp(F1->getPersonne(i), M.Donnee) != 0 && i < 5; i++);
 
-            if(strcmp(F1->getPersonne(i), M.Donnee) == 0)
-            {
-                F1->setPersonne(i, "");
-                F1->setCheckbox(i, false);
-            }
-        break;
+                if(strcmp(F1->getPersonne(i), M.Donnee) == 0)
+                {
+                    F1->setPersonne(i, "");
+                    F1->setCheckbox(i, false);
+                }
+            break;
+        }
     }
     return;
 }

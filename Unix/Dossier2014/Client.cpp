@@ -225,13 +225,43 @@ void Client::Terminer()
 
 void Client::Rechercher()
 {
-    char	B[255];
+    char B[255];
     strcpy(B,ButtonRechercher->text());
+    strcpy(M.Donnee, lineNom->text());
+
     if (!strcmp(B,"Rechercher"))
-       { ButtonModifier->setText( tr( "Modifier" ) );
-         ButtonRechercher->setText( tr( "Annuler") );
+    { 
+        if(!strcmp(M.Donnee, lineNomLogin->text())) //on vérifie si l'on recherche nos infos ou celles des autres.
+        {
+            ButtonModifier->setText( tr( "Modifier" ) );
+            ButtonRechercher->setText( tr( "Annuler") );
+        }
+
+        M.Requete = RECHERCHER;
+
+        M.Type = 1L;
+        M.idPid =  getpid();
+
+        if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)
+        {
+            perror("Erreur de login");
+            exit(0);
+        }
+
          return;
-       }
+    }
+
+    M.Requete = ANNULER;
+
+    M.Type = 1L;
+    M.idPid =  getpid();
+
+    if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)
+    {
+        perror("Erreur de login");
+        exit(0);
+    }
+
     ButtonModifier->setText( tr( "---" ) );
     ButtonRechercher->setText( tr( "Rechercher") );
     return;
