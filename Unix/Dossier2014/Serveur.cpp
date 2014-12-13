@@ -16,13 +16,13 @@
 #include "Fichier.ini"
 
 #define MEMORY 1498
-#define SEMA 2314
-
+#define SEMALEC 2314
+#define SEMAEC 2313
 
 int idMsg;
 //int idShm;
 int memoire;
-int Sem;
+int SemLec, SemEc;
 MEMOIRE *Tab;
 
 void AfficheTab();
@@ -35,14 +35,10 @@ int main()
 
 int	rc,pid1 = 0 ,pid2 = 0, fichlog;
 MESSAGE M, TransferConnecte;
-struct sembuf OperationSema;
 char *mempub;
 char  B[80];
 char transfer[255];
 int i,j,k;
-
-OperationSema.sem_num = 0;
-OperationSema.sem_flg = 0;
 
 /*******************Redirige l'entrée d'erreur sur un fichier trace************************/
 if((fichlog = open("traceServ1.log",O_CREAT|O_TRUNC|O_WRONLY, 0777)) == -1 )
@@ -90,19 +86,18 @@ if((Tab = (MEMOIRE*)shmat(memoire, NULL, 0)) == (MEMOIRE*) -1)//On se raccroche 
 }
 
 /*****************************SEMAPHORES********************************************************/
-
-if((Sem = semget(SEMA, 1, IPC_CREAT|IPC_EXCL|0600)) == -1)
+if((SemLec = semget(SEMALEC, 1, IPC_CREAT|IPC_EXCL|0600)) == -1)
 {
-  if((Sem = semget(SEMA, 0, 0)) == -1)
-  {
-    Trace("Erreur creation semaphore");
-    exit(1);
-  }
+  Trace("Erreur creation semaphore");
+  exit(1);
 }
-else
- semctl(Sem, 0, SETVAL, 1);
 
-Trace("valeur semaphore : %d", semctl(Sem, 0, GETVAL));
+if((SemEc = semget(SEMAEC, 1, IPC_CREAT|IPC_EXCL|0600)) == -1)
+{
+  Trace("Erreur creation semaphore");
+  exit(1);
+}
+
 
 while(1)
 {
@@ -114,13 +109,7 @@ switch(M.Requete)
 
       case LOGIN:
 
-          OperationSema.sem_op = -1; //mise à jour du sémaphore
-          if(semop(Sem, &OperationSema, 1))
-          {
-            Trace("erreur semaphore");
-            exit(-3);
-          }
-
+          
           for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != 0; i++);
 
           if(i == 5 && Tab->Utilisateur[i].Pid != 0)
@@ -132,25 +121,11 @@ switch(M.Requete)
           Trace("%d", M.idPid);
 
           Tab->Utilisateur[i].Pid = M.idPid;
-
-          OperationSema.sem_op = 1; //mise a jour du sémphore
-          if(semop(Sem, &OperationSema, 1))
-          {
-            Trace("erreur semaphore");
-            exit(-3);
-          }
-
+          
           break;
 
       case NEWWINDOW:
 
-            
-            OperationSema.sem_op = -1; //mise à jour du sémaphore
-            if(semop(Sem, &OperationSema, 1))
-            {
-              Trace("erreur semaphore");
-              exit(-3);
-            }
             
             for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++);// On cherchele PID de l'utilisateur qui veut se log 
 
@@ -189,24 +164,11 @@ switch(M.Requete)
 
           Trace("Client %d login", M.idPid);
           
-          OperationSema.sem_op = 1; //mise a jour du sémphore
-          if(semop(Sem, &OperationSema, 1))
-          {
-            Trace("erreur semaphore");
-            exit(-3);
-          }
 
         break;
 
      case ENDWINDOW:
             
-            OperationSema.sem_op = -1; //mise à jour du sémaphore
-            if(semop(Sem, &OperationSema, 1))
-            {
-              Trace("erreur semaphore");
-              exit(-3);
-            }
-
             for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++); //recherche de l'utilisateur qui se delog
               
             strcpy(Tab->Utilisateur[i].NomUtilisateur, "\0");//remplace son nom par \0
@@ -218,25 +180,11 @@ switch(M.Requete)
               j++;
             }
             Trace("Client %d deconnecté", M.idPid);
-
-            OperationSema.sem_op = 1; //mise a jour du sémphore
-            if(semop(Sem, &OperationSema, 1))
-            {
-              Trace("erreur semaphore");
-              exit(-3);
-            }
             
         break;
 
      case TERMINER:
             
-            OperationSema.sem_op = -1; //mise à jour du sémaphore
-            if(semop(Sem, &OperationSema, 1))
-            {
-              Trace("erreur semaphore");
-              exit(-3);
-            }
-
             for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++); //recherche de l'utilisateur qui se delogs
 
             strcpy(M.Donnee, Tab->Utilisateur[i].NomUtilisateur);//On prepare un message pour les autres clients
@@ -268,13 +216,6 @@ switch(M.Requete)
 
               }
             }
-
-            OperationSema.sem_op = 1; //mise a jour du sémphore
-            if(semop(Sem, &OperationSema, 1))
-            {
-              Trace("erreur semaphore");
-              exit(-3);
-            }
             
         break;
 
@@ -289,13 +230,6 @@ switch(M.Requete)
 
      case ENVOYER:
           
-          OperationSema.sem_op = -1; //mise à jour du sémaphore
-          if(semop(Sem, &OperationSema, 1))
-          {
-            Trace("erreur semaphore");
-            exit(-3);
-          }
-
           for(i=0; i < 5 && M.idPid != Tab->Utilisateur[i].Pid; i++); //on cherche dans la table le pid de celui qui a envoyé le message
 
           sprintf(transfer,"(%s)%s", Tab->Utilisateur[i].NomUtilisateur, M.Donnee);//on prepare le message
@@ -318,22 +252,9 @@ switch(M.Requete)
             
           }
           
-          OperationSema.sem_op = 1; //mise a jour du sémphore
-          if(semop(Sem, &OperationSema, 1))
-          {
-            Trace("erreur semaphore");
-            exit(-3);
-          }
         break;
 
      case ACCEPTER:
-
-          OperationSema.sem_op = -1; //mise à jour du sémaphore
-          if(semop(Sem, &OperationSema, 1))
-          {
-            Trace("erreur semaphore");
-            exit(-3);
-          }
           
           for(i = 0; i < 5 && strcmp(M.Donnee, Tab->Utilisateur[i].NomUtilisateur); i++);//chercher le nom à accepter
           k = Tab->Utilisateur[i].Pid;//On enregistre le PID de l'utilisateur trouvé
@@ -343,23 +264,9 @@ switch(M.Requete)
           for (j = 0; i < 5 && Tab->Utilisateur[i].Autre[j] != 0 ;j++);//On parcour le tableau des utilisateurs acceptés pour trouver un emplacement libre
           Tab->Utilisateur[i].Autre[j] = k;
           
-          OperationSema.sem_op = 1; //mise a jour du sémphore
-          if(semop(Sem, &OperationSema, 1))
-          {
-            Trace("erreur semaphore");
-            exit(-3);
-          }
         break;
 
      case REFUSER:
-
-          OperationSema.sem_op = -1; //mise à jour du sémaphore
-          if(semop(Sem, &OperationSema, 1))
-          {
-            Trace("erreur semaphore");
-            exit(-3);
-          }
-
           for(i = 0; i < 5 && strcmp(M.Donnee, Tab->Utilisateur[i].NomUtilisateur); i++);//chercher le nom à refuser
           k = Tab->Utilisateur[i].Pid;//On enregistre l'ID à refuser
 
@@ -367,13 +274,6 @@ switch(M.Requete)
 
           for (j = 0; i < 5 && Tab->Utilisateur[i].Autre[j] != k ;j++);// On parcour son tab des utilisateurs acceptés pour trouver les vides.
           Tab->Utilisateur[i].Autre[j] = 0;
-        
-          OperationSema.sem_op = 1; //mise a jour du sémphore
-          if(semop(Sem, &OperationSema, 1))
-          {
-            Trace("erreur semaphore");
-            exit(-3);
-          }
         break;
       }
 
