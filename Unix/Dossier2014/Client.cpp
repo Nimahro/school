@@ -33,7 +33,7 @@ extern Client* F1;
 extern int idMsg;
 
 /*
- *  Constructs a Client as a child of 'parent', with the
+ *  Constructs a Client as a child of 'Parent', with the
  *  name 'name' and widget flags set to 'f'.
  *
  *  The dialog will by default be modeless, unless you set 'modal' to
