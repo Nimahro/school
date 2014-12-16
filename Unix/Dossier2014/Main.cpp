@@ -89,6 +89,8 @@ void HNouveauMessage(int Sig)
                     F1->setPersonne(i, "");
                     F1->setCheckbox(i, false);
                 }
+
+            case UTTROUVE:
             break;
         }
     }

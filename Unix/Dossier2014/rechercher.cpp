@@ -16,10 +16,15 @@ void Trace(char *pszTrace, ... );
 
 int main(int argc, char const *argv[])
 {
-	int fichlog, idMsg, fichUser;
+	int fichlog, idMsg, fichUser, pidUt;
 	UTILISATEUR lecFich;
+	MESSAGE M;
 
 	struct flock verrou;
+
+
+
+	pidUt = atoi(argv[2]);
 
 	/*******************Redirige l'entrée d'erreur sur un fichier trace************************/
 	if((fichlog = open("rechtrace.log",O_CREAT|O_TRUNC|O_WRONLY, 0777)) == -1 )
@@ -39,9 +44,8 @@ int main(int argc, char const *argv[])
       	exit(1);
      }
 
-     Trace("%s , %s, %s\n", argv[1], argv[2], argv[3]);
-
-	 if(!strcmp(argv[3], "0")) // Si il ne s'agit pas d'une recherche sur le même utilisateur
+     /***************************UTILISATEUR DIFFERENT DE LUI MEME*******************************************/
+	 if(!strcmp(argv[3], "0")) 
 	 {
 	 	if((fichUser = open(FICHU, O_RDONLY)) == -1)// ouverture du fichier utilisateur read only
         {
@@ -57,25 +61,55 @@ int main(int argc, char const *argv[])
 
         if(strcmp(argv[1], lecFich.NomUtilisateur))
         {
-        	Trace("l'utilisateur rechercher n'existe pas");
+        	strcpy(M.Donnee, "Nom inconnus"); // envois du message
+    		M.idPid = getpid();
+    		M.Type = pidUt;
+    		M.Requete = UTTROUVE;
+
+    		if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)
+            {
+               Trace("Erreur envois de message process %d", M.idPid);
+               exit(0);
+            }
         	exit(0);
         }
 
         verrou.l_type = F_RDLCK; // verrou partagé sur l'enregistrement lu
-        verrou.l_whence = SEEK_SET;
-        verrou.l_start = lseek(fichUser, -sizeof(UTILISATEUR), SEEK_CUR);
+        verrou.l_whence = SEEK_CUR;
+        verrou.l_start = -sizeof(UTILISATEUR);
         verrou.l_len = sizeof(UTILISATEUR);
 
     	if((fcntl(fichUser, F_SETLK, &verrou)) == -1)// si le fichier est déjà verrouillé
     	{
-    		Trace("erreur de lecture fichier modifier");
+    		//L'enregistrement est en cours de modification
+
+    		strcpy(M.Donnee, "Modification en cours");
+    		M.idPid = getpid();
+    		M.Type = pidUt;
+    		M.Requete = UTTROUVE;
+
+    		if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)
+            {
+               Trace("Erreur envois de message process %d", M.idPid);
+               exit(0);
+            }
     		exit(0);
     	}
 
+    	strcpy(M.Donnee, lecFich.Gsm);
+    	M.idPid = getpid();
+    	M.Type = pidUt;
+    	M.Requete = UTTROUVE;
+
+    	if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)
+        {
+            Trace("Erreur envois de message process %d", M.idPid);
+            exit(0);
+        }
+
+
     	verrou.l_type = F_UNLCK; // on enleve le verrou
     	fcntl(fichUser, F_SETLK, &verrou);
-
-    	Trace("OK envois du message");
 
 	 	exit(0);
 	 }
@@ -93,26 +127,56 @@ int main(int argc, char const *argv[])
         break;
     }
 
-    if(strcmp(argv[1], lecFich.NomUtilisateur))
+    if(strcmp(argv[1], lecFich.NomUtilisateur))// on n'a pas trouve l'utilisateur
     {
-    	Trace("l'utilisateur rechercher n'existe pas");
-    	exit(0);
+    	strcpy(M.Donnee, "Nom inconnus"); // envois du message
+    	M.idPid = getpid();
+    	M.Type = pidUt;
+    	M.Requete = UTTROUVE;
+
+    	if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)
+        {
+            Trace("Erreur envois de message process %d", M.idPid);
+            exit(0);
+        }
+        exit(0);
     }
 
     verrou.l_type = F_WRLCK; // verrou partagé sur l'enregistrement lu
-    verrou.l_whence = SEEK_SET;
-    verrou.l_start = lseek(fichUser, -sizeof(UTILISATEUR), SEEK_CUR);
+    verrou.l_whence = SEEK_CUR;
+    verrou.l_start = -sizeof(UTILISATEUR);
     verrou.l_len = sizeof(UTILISATEUR);
 
-    if((fcntl(fichUser, F_SETLKW, &verrou)) == -1)// si le fichier est déjà verrouillé
+    if(fcntl(fichUser, F_SETLK, &verrou))// si le fichier est déjà verrouillé
   	{
-    	Trace("erreur de lecture fichier modifier");
+    	
+    	strcpy(M.Donnee, "Modification en cours");
+    	M.idPid = getpid();
+    	M.Type = pidUt;
+    	M.Requete = UTTROUVE;
+
+    	if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)
+        {
+           Trace("Erreur envois de message process %d", M.idPid);
+           exit(0);
+        }
     	exit(0);
     }
 
+    strcpy(M.Donnee, lecFich.Gsm);
+    M.idPid = getpid();
+    M.Type = pidUt;
+    M.Requete = UTTROUVE;
 
-    sleep(20);
+    if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)// on envoit le message avec le num de téléphone
+	{
+    	Trace("Erreur envois de message process %d", M.idPid);
+        exit(0);
+    }
 
+    msgrcv (idMsg, &M, sizeof(MESSAGE) - sizeof(long), getpid(), 0);
+
+    Trace("reçus %s ", M.Donnee);
 
     verrou.l_type = F_UNLCK; // on enleve le verrou
     fcntl(fichUser, F_SETLK, &verrou);

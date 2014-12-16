@@ -1,5 +1,3 @@
-/* Serveur.c
-*/
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -363,21 +361,15 @@ switch(M.Requete)
 
         break;
 
-     case ANNULER:
-        break;
-
-     case MODIFIER:
-        break;
-
      case ENVOYER:
           
           operation.sem_op = -1;
 
-            if((semop(Sem, &operation, 1)) == -1)
-            {
-              Trace("erreur MAJ semaphore");
-              exit(-5);
-            }
+          if((semop(Sem, &operation, 1)) == -1)
+          {
+            Trace("erreur MAJ semaphore");
+            exit(-5);
+          }
 
           for(i=0; i < 5 && M.idPid != Tab->Utilisateur[i].Pid; i++); //on cherche dans la table le pid de celui qui a envoyé le message
 
