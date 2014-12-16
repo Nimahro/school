@@ -188,7 +188,7 @@ void Client::Login()
     M.Donnee[0] = '\0';
     strcat(M.Donnee, lineNomLogin->text());
 
-    if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)
+    if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)
     {
         perror("Erreur de login");
         exit(0);
@@ -207,7 +207,7 @@ void Client::Terminer()
 
     M.Donnee[0] = '\0';
 
-    if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)
+    if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)
     {
         perror("Erreur de login");
         exit(0);
@@ -242,7 +242,7 @@ void Client::Rechercher()
         M.Type = 1L;
         M.idPid =  getpid();
 
-        if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)
+        if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)
         {
             perror("Erreur de login");
             exit(0);
@@ -256,7 +256,7 @@ void Client::Rechercher()
     M.Type = 1L;
     M.idPid =  getpid();
 
-    if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)
+    if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)
     {
         perror("Erreur de login");
         exit(0);
@@ -290,7 +290,7 @@ void Client::Envoyer()
     M.Type = 1L;
     M.idPid = getpid();
 
-    if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)
+    if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)
     {
         perror("Erreur msgsnd Client");
         exit(0);
@@ -332,7 +332,7 @@ void Client::Selection(int i)
          M.idPid = getpid();
          M.Requete = ACCEPTER;
          strcpy(M.Donnee,linePersonne[i]->text());
-         msgsnd(idMsg,&M,sizeof(long)+9+strlen(M.Donnee),0);
+         msgsnd(idMsg,&M,sizeof(MESSAGE) - sizeof(long),0);
        }
     else
         {
@@ -341,7 +341,7 @@ void Client::Selection(int i)
             M.idPid = getpid();
             M.Requete = REFUSER;
             strcpy(M.Donnee,linePersonne[i]->text());
-            msgsnd(idMsg,&M,sizeof(long)+9+strlen(M.Donnee),0);
+            msgsnd(idMsg,&M,sizeof(MESSAGE) - sizeof(long),0);
         }
 
 }

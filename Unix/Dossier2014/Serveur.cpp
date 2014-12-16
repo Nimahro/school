@@ -19,7 +19,6 @@
 
 #define MEMORY 1498
 #define SEMA 2314
-#define FICHU "Utilisateur.dat"
 
 union semun {
     int val;
@@ -42,7 +41,7 @@ int main()
 int	rc, fichlog, fichUser;
 MESSAGE M, TransferConnecte;
 //char  B[80];
-char transfer[255];
+char transPid[255], transMarq[10], transfer[255];
 int i,j,k, idRech;
 sembuf operation;
 UTILISATEUR lecFich;
@@ -70,7 +69,7 @@ sigemptyset(&Fct.sa_mask);
 Fct.sa_flags = 0;
 sigaction (SIGINT, &Fct, NULL);
 
-/**************************Creation des resources**************************/
+/**************************CREATION FILE MESSAGE*************************/
 if ((idMsg = msgget(KEY,IPC_CREAT|IPC_EXCL|0600)) == -1)
    { 
       if ((idMsg = msgget(KEY,0)) == -1)
@@ -126,6 +125,8 @@ else
 }
 
 Trace("valeur semaphore %d", semctl(Sem, 0, GETVAL));
+
+
 /************************Ouverture du fichier *************************************************/
 
 while(1)
@@ -186,21 +187,21 @@ switch(M.Requete)
               exit(-5);
             }
 
-            if((fichUser = open(FICHU, O_RDONLY)) == -1)
+            if((fichUser = open(FICHU, O_RDONLY)) == -1)// ouverture du fichier utilisateur
             {
-              Trace("Erreur fichier client");
+              Trace("Erreur fichier utilisateur");
               exit(-1);
             }
 
-            while(read(fichUser, &lecFich, sizeof(UTILISATEUR)))
+            while(read(fichUser, &lecFich, sizeof(UTILISATEUR))) // boucle de lecture
             {
-              if(!strcmp(M.Donnee, lecFich.NomUtilisateur))
+              if(!strcmp(M.Donnee, lecFich.NomUtilisateur)) // si on trouve l'utilisateur on arrête la lecture
                 break;
             }
 
-            close(fichUser);
+            close(fichUser); // fermeture du fichier
 
-            if(strcmp(M.Donnee, lecFich.NomUtilisateur))
+            if(strcmp(M.Donnee, lecFich.NomUtilisateur)) // verif si on est pas sortis à cause de la fin de fichier
             {
               Trace("L'utilisateur n'existe pas %s", M.Donnee);
               continue;
@@ -309,7 +310,7 @@ switch(M.Requete)
               if(Tab->Utilisateur[i].Pid != M.idPid && Tab->Utilisateur[i].Pid != 0 && strlen(Tab->Utilisateur[i].NomUtilisateur) > 0)
               {
                 M.Type = Tab->Utilisateur[i].Pid; 
-                if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)//envois du nouvel utilisateur aux progs logs
+                if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)//envois du nouvel utilisateur aux progs logs
                 {
                   Trace("Erreur envois de nouvel utilisateur process %d", M.idPid);
                   exit(0);
@@ -337,17 +338,29 @@ switch(M.Requete)
 
      case RECHERCHER:
 
+        for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++); // on cherche le PID de l'utilisateur qui lance la recherche
+
+        if(strcmp(M.Donnee, Tab->Utilisateur[i].NomUtilisateur)) //si l'utilisateur cherche quelqu'un d'autre
+          k = 0;
+
+        else // si il se cherche lui même
+          k = 1;
+
         if ((idRech = fork()) == -1)
         {
           Trace("erreur fork rechercher");
           exit(-5);
         }
+
         Trace("fork ok %d ", idRech);
+
         if(!idRech)
         {
-          sprintf(transfer, "%d", M.idPid);
-          execl("./rechercher", "rechercher", M.Donnee, transfer, NULL);
+          sprintf(transPid, "%d", M.idPid);
+          sprintf(transMarq, "%d", k);
+          execl("./rechercher", "rechercher", M.Donnee, transPid, transMarq, NULL);
         }
+
         break;
 
      case ANNULER:
@@ -378,7 +391,7 @@ switch(M.Requete)
             {  
               M.idPid = Tab->Utilisateur[i].Autre[j];
               M.Type = Tab->Utilisateur[i].Autre[j];
-              if (msgsnd (idMsg, &M, strlen(M.Donnee) + sizeof(long) + 1 + sizeof(int), 0) == -1)
+              if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)
               {
                 Trace("Erreur envois de message process %d", M.idPid);
                 exit(0);
