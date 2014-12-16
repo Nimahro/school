@@ -33,6 +33,8 @@ void hcoupeserv (int NumSig);
 void Trace(char *pszTrace, ... );
 
 
+
+
 int main()
 {
 
@@ -125,7 +127,7 @@ else
 Trace("valeur semaphore %d", semctl(Sem, 0, GETVAL));
 
 
-/************************Ouverture du fichier *************************************************/
+/****************************************Ouverture du fichier *************************************************/
 
 while(1)
 {
@@ -145,109 +147,110 @@ switch(M.Requete)
 
       case LOGIN:
 
-          operation.sem_op = -1;
+        operation.sem_op = -1;
 
-          if((semop(Sem, &operation, 1)) == -1)
-          {
-            Trace("erreur MAJ semaphore");
-            exit(-5);
-          }
+        if((semop(Sem, &operation, 1)) == -1)
+        {
+          Trace("erreur MAJ semaphore");
+          exit(-5);
+        }
 
-          for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != 0; i++);
-
-          if(i == 5 && Tab->Utilisateur[i].Pid != 0)
-          {
-            Trace("plus de place pour %d", M.idPid);
-            continue;
-          }
-
-          Trace("%d", M.idPid);
-
-          Tab->Utilisateur[i].Pid = M.idPid;
-
-          operation.sem_op = 1;
-
-          if((semop(Sem, &operation, 1)) == -1)
-          {
-            Trace("erreur MAJ semaphore");
-            exit(-5);
-          }
-          
-          break;
-
-      case NEWWINDOW:
-
-            operation.sem_op = -1;
-
-            if((semop(Sem, &operation, 1)) == -1)
-            {
-              Trace("erreur MAJ semaphore");
-              exit(-5);
-            }
-
-            if((fichUser = open(FICHU, O_RDONLY)) == -1)// ouverture du fichier utilisateur
-            {
-              Trace("Erreur fichier utilisateur");
+        if((fichUser = open(FICHU, O_RDONLY)) == -1)// ouverture du fichier utilisateur
+        {
+          Trace("Erreur fichier utilisateur");
               exit(-1);
-            }
+        }
 
-            while(read(fichUser, &lecFich, sizeof(UTILISATEUR))) // boucle de lecture
-            {
-              if(!strcmp(M.Donnee, lecFich.NomUtilisateur)) // si on trouve l'utilisateur on arrête la lecture
-                break;
-            }
+        while(read(fichUser, &lecFich, sizeof(UTILISATEUR))) // boucle de lecture
+        {
+          if(!strcmp(M.Donnee, lecFich.NomUtilisateur)) // si on trouve l'utilisateur on arrête la lecture
+          break;
+        }
 
-            close(fichUser); // fermeture du fichier
+        close(fichUser); // fermeture du fichier
 
-            if(strcmp(M.Donnee, lecFich.NomUtilisateur)) // verif si on est pas sortis à cause de la fin de fichier
-            {
-              Trace("L'utilisateur n'existe pas %s", M.Donnee);
-              continue;
-            }
+        if(strcmp(M.Donnee, lecFich.NomUtilisateur)) // verif si on est pas sortis à cause de la fin de fichier
+        {
+          Trace("L'utilisateur n'existe pas %s", M.Donnee);
+          continue;
+        }
               
-            for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++);// On cherchele PID de l'utilisateur qui veut se log 
+        for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != M.idPid; i++);// On cherchele PID de l'utilisateur qui veut se log 
 
-            strcpy(Tab->Utilisateur[i].NomUtilisateur, M.Donnee); //transfer du nom de l'utilisateur log dans le tableau
+        strcpy(Tab->Utilisateur[i].NomUtilisateur, M.Donnee); //transfer du nom de l'utilisateur log dans le tableau
 
-            TransferConnecte.Type = M.idPid; // Struc qui permettras de transferer le nom des utilisateurs connectés aux autres utilisateurs
-            TransferConnecte.Requete = NEWWINDOW;
+        TransferConnecte.Type = M.idPid; // Struc qui permettras de transferer le nom des utilisateurs connectés aux autres utilisateurs
+        TransferConnecte.Requete = NEWWINDOW;
 
-            for(i = 0; i < 5; i++)// on cherche tous les autres utilisateurs log pour leur envoyer le nouvel utilisateur
+        for(i = 0; i < 5; i++)// on cherche tous les autres utilisateurs log pour leur envoyer le nouvel utilisateur
+        {
+          if(Tab->Utilisateur[i].Pid != M.idPid && Tab->Utilisateur[i].Pid != 0 && strlen(Tab->Utilisateur[i].NomUtilisateur) > 0)
             {
-              if(Tab->Utilisateur[i].Pid != M.idPid && Tab->Utilisateur[i].Pid != 0 && strlen(Tab->Utilisateur[i].NomUtilisateur) > 0)
+              M.Type = Tab->Utilisateur[i].Pid; 
+              if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)//envois du nouvel utilisateur aux progs logs
               {
-                M.Type = Tab->Utilisateur[i].Pid; 
-                if (msgsnd (idMsg, &M, sizeof(MESSAGE) - sizeof(long), 0) == -1)//envois du nouvel utilisateur aux progs logs
-                {
-                  Trace("Erreur envois de nouvel utilisateur process %d", M.idPid);
-                  exit(0);
-                }
-
-                strcpy(TransferConnecte.Donnee, Tab->Utilisateur[i].NomUtilisateur);
-                Trace("transfer du nom : %s\n", TransferConnecte.Donnee);
-                if (msgsnd (idMsg, &TransferConnecte, sizeof(MESSAGE) - sizeof(long), 0) == -1)//dans la foulée on envoit au nouvel utilisateur les utilisateurs connectés
-                {
-                  Trace("Erreur envois de nouvel utilisateur process %d", TransferConnecte.idPid);
-                   exit(0);
-                }
-              
-
-                kill (Tab->Utilisateur[i].Pid, SIGUSR1);
-                kill (TransferConnecte.Type, SIGUSR1);
+                Trace("Erreur envois de nouvel utilisateur process %d", M.idPid);
+                exit(0);
               }
 
+              strcpy(TransferConnecte.Donnee, Tab->Utilisateur[i].NomUtilisateur);
+              Trace("transfer du nom : %s\n", TransferConnecte.Donnee);
+              if (msgsnd (idMsg, &TransferConnecte, sizeof(MESSAGE) - sizeof(long), 0) == -1)//dans la foulée on envoit au nouvel utilisateur les utilisateurs connectés
+              {
+                Trace("Erreur envois de nouvel utilisateur process %d", TransferConnecte.idPid);
+                exit(0);
+              }
+              
+
+              kill (Tab->Utilisateur[i].Pid, SIGUSR1);
+              kill (TransferConnecte.Type, SIGUSR1);
             }
 
-          Trace("Client %d login", M.idPid);
+          }
+
+        Trace("Client %d login", M.idPid);
           
 
-          operation.sem_op = 1;
+        operation.sem_op = 1;
 
-            if((semop(Sem, &operation, 1)) == -1)
-            {
-              Trace("erreur MAJ semaphore");
-              exit(-5);
-            }
+        if((semop(Sem, &operation, 1)) == -1)
+        {
+            Trace("erreur MAJ semaphore");
+            exit(-5);
+        }
+        break;
+
+          
+      case NEWWINDOW:
+
+        operation.sem_op = -1;
+
+        if((semop(Sem, &operation, 1)) == -1)
+        {
+          Trace("erreur MAJ semaphore");
+          exit(-5);
+        }
+
+        for(i = 0; i < 5 && Tab->Utilisateur[i].Pid != 0; i++);
+
+        if(i == 5 && Tab->Utilisateur[i].Pid != 0)
+        {
+          Trace("plus de place pour %d", M.idPid);
+          continue;
+        }
+
+        Trace("%d", M.idPid);
+
+        Tab->Utilisateur[i].Pid = M.idPid;
+
+        operation.sem_op = 1;
+
+        if((semop(Sem, &operation, 1)) == -1)
+        {
+          Trace("erreur MAJ semaphore");
+          exit(-5);
+        }
+          
         break;
 
      case ENDWINDOW:

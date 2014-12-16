@@ -40,7 +40,7 @@ int main(int argc,char* argv[])
         exit(0);
     }
 
-    M.Requete = LOGIN;
+    M.Requete = NEWWINDOW;
     M.Type = 1L;
     M.idPid = getpid();
 
@@ -91,6 +91,7 @@ void HNouveauMessage(int Sig)
                 }
 
             case UTTROUVE:
+                F1->setGsm(M.Donnee);
             break;
         }
     }

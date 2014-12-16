@@ -181,7 +181,7 @@ void Client::languageChange()
 void Client::Login()
 {
 
-    M.Requete = NEWWINDOW;
+    M.Requete = LOGIN;
     M.Type = 1L;
     M.idPid = getpid();
 
@@ -371,4 +371,9 @@ void Client::setPublicite(const char *T)
 void Client::setCheckbox(int i,const bool b)
 {
     checkBox[i]->setChecked(b);
+}
+
+void Client::setGsm(const char* T)
+{
+    lineGsm->setText(T);
 }

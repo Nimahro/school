@@ -71,6 +71,7 @@ int main(int argc, char const *argv[])
                Trace("Erreur envois de message process %d", M.idPid);
                exit(0);
             }
+            kill (pidUt, SIGUSR1);
         	exit(0);
         }
 
@@ -93,6 +94,7 @@ int main(int argc, char const *argv[])
                Trace("Erreur envois de message process %d", M.idPid);
                exit(0);
             }
+            kill (pidUt, SIGUSR1);
     		exit(0);
     	}
 
@@ -106,7 +108,7 @@ int main(int argc, char const *argv[])
             Trace("Erreur envois de message process %d", M.idPid);
             exit(0);
         }
-
+        kill (pidUt, SIGUSR1);
 
     	verrou.l_type = F_UNLCK; // on enleve le verrou
     	fcntl(fichUser, F_SETLK, &verrou);
@@ -139,6 +141,7 @@ int main(int argc, char const *argv[])
             Trace("Erreur envois de message process %d", M.idPid);
             exit(0);
         }
+        kill (pidUt, SIGUSR1);
         exit(0);
     }
 
@@ -160,6 +163,8 @@ int main(int argc, char const *argv[])
            Trace("Erreur envois de message process %d", M.idPid);
            exit(0);
         }
+
+        kill (pidUt, SIGUSR1);
     	exit(0);
     }
 
@@ -173,6 +178,7 @@ int main(int argc, char const *argv[])
     	Trace("Erreur envois de message process %d", M.idPid);
         exit(0);
     }
+    kill (pidUt, SIGUSR1);
 
     msgrcv (idMsg, &M, sizeof(MESSAGE) - sizeof(long), getpid(), 0);
 

@@ -67,6 +67,7 @@ public slots:
     virtual void setMessage(const char*);
     virtual void setPublicite(const char*);
     virtual void setCheckbox(int, const bool);
+    virtual void setGsm(const char* T);
 
 protected:
 
